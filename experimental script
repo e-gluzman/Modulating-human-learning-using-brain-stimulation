@@ -1,0 +1,204 @@
+% This is an experimental script to be used in MATLAB with Psychtoolbox. It is based on Psychtoolbox tutorials by Peter Scarfe. 
+
+% This script is currently in development
+
+%% function experiment2(subID)
+
+% Clear the workspace and the screen
+sca;
+close all;
+%clearvars;
+
+% Here we call some default settings for setting up Psychtoolbox
+PsychDefaultSetup(2);
+
+% Get the screen numbers
+screens = Screen('Screens');
+
+% Draw to the external screen if avaliable
+screenNumber = max(screens);
+
+% Define black and white
+white = WhiteIndex(screenNumber);
+black = BlackIndex(screenNumber);
+grey = white / 2;
+inc = white - grey;
+
+%% Keyboard setup
+KbName('UnifyKeyNames');
+KbCheckList = [KbName('space'),KbName('ESCAPE'),KbName('1'),KbName('2')];
+RestrictKeysForKbCheck(KbCheckList);
+
+% Set up the output file
+resultsFolder = 'results';
+outputfile = fopen([resultsFolder '/resultfile_' num2str(subID) '.txt'],'a');
+fprintf(outputfile, 'subID\t Condition\t trial\t card\t response\t RT\n');
+
+%% Load trial list
+trials = readmatrix('RewardSchedule.xlsx');
+
+%% Screen set up
+
+% Open an on screen window
+[window, windowRect] = PsychImaging('OpenWindow', screenNumber, white);
+
+% Get the size of the on screen window
+[screenXpixels, screenYpixels] = Screen('WindowSize', window);
+
+% Query the frame duration
+ifi = Screen('GetFlipInterval', window);
+
+% Get the centre coordinate of the window
+[xCenter, yCenter] = RectCenter(windowRect);
+
+% Add height and width
+W=windowRect(RectRight); % screen width
+H=windowRect(RectBottom); % screen height
+
+% Set up alpha-blending for smooth (anti-aliased) lines
+Screen('BlendFunction', window, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
+
+%% find stimuli position
+
+% Get the size of the on screen window in pixels
+[screenXpixels, screenYpixels] = Screen('WindowSize', window);
+
+% Get the centre coordinate of the window in pixels
+[xCenter, yCenter] = RectCenter(windowRect);
+
+% define rectangle to draw
+baseRect = [0 0 400 600];
+
+% Center the rectangle on the centre of the screen using fractional pixel
+% values.
+centered = CenterRectOnPointd(baseRect, (xCenter), yCenter);
+
+% load images to draw
+CardA = imread('images/CardAwhite.jpg');
+CardB = imread('images/CardBwhite.jpg');
+CardAred = imread('images/CardAred.jpg');
+CardAblue = imread('images/CardAblue.jpg');
+CardBred = imread('images/CardBred.jpg');
+CardBblue = imread('images/CardBblue.jpg');
+
+% Make the image into a texture
+imageA = Screen('MakeTexture', window, CardA);
+imageB = Screen('MakeTexture', window, CardB);
+imageAred = Screen('MakeTexture', window, CardAred);
+imageBred = Screen('MakeTexture', window, CardBred);
+imageAblue = Screen('MakeTexture', window, CardAblue);
+imageBblue = Screen('MakeTexture', window, CardBblue);
+
+
+
+%% run the experiment
+
+% Start screen
+Screen('DrawText',window,'Press the space bar to begin', (W/2-300), (H/2));
+Screen('Flip',window)
+
+% Wait for subject to press spacebar
+while 1
+    [keyIsDown,secs,keyCode] = KbCheck;
+    if keyCode(KbName('space'))==1
+        break
+    end
+end
+
+% Flip to the screen
+Screen('Flip', window);
+
+for t = trials(:,1)
+    
+    % retrieve probability a choice is correct
+    probabilityA = trials(t,2);
+    probabilityB = trials(t,3);
+    
+    % decide which option to display
+    
+    x = rand
+    
+    if x > 0.5
+        
+        Screen('DrawTexture', window, imageA, [], centered);
+        
+        % decide if this trial it will be correct
+        
+        y = rand 
+        
+        if y < probabilityA
+            
+            correct = 1 
+            
+        else 
+            
+            correct = 0
+        end
+        
+        % wait for response
+        WaitSecs(5)
+        
+        if
+            
+            
+        
+    
+%     % randomise position
+%     Z = cell(2,3);
+%     Z{1,1} = imageA;
+%     Z{1,2} = imageB;
+%     Z{1,3} = imageC;
+%     Z{2,1} = probabilityA;
+%     Z{2,2} = probabilityB;
+%     Z{2,3} = probabilityC;
+%     
+% %     Z = Z(:,randperm(size(Z,2)));
+%    
+%    % draw the stimuli
+%     z1 = Z{1,1};
+%     z2 = Z{1,2};
+% %     z3 = Z{1,3};
+%    
+%     Screen('DrawTexture', window, z1, [], left);
+%     Screen('DrawTexture', window, z2, [], centered);
+%     Screen('DrawTexture', window, z3, [], right);
+
+
+% draw stimuli
+Screen('FillRect', window, rectColor, centeredRect);
+
+    
+    %Flip to the screen
+    Screen('Flip', window);
+    
+    % % Wait for two seconds
+    WaitSecs(2);
+    
+    %Flip to the screen
+    Screen('Flip', window);
+
+end
+
+
+% 
+% % % Now fill the screen green
+% % Screen('FillRect', window, [0 1 0]);
+% 
+% % Flip to the screen
+% Screen('Flip', window);
+% 
+% % Wait for two seconds
+% WaitSecs(2);
+
+% Draw the image to the screen for a second time this time upside down and
+% drawn onto our updated blue background
+% Screen('DrawTexture', window, imageB);
+% 
+% % Flip to the screen
+% Screen('Flip', window);
+% 
+% % Wait for one second
+% WaitSecs(2);
+
+% Clear the screen
+sca;
