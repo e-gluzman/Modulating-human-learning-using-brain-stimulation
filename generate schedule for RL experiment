@@ -1,0 +1,85 @@
+% This script allows to generate the reward schedule for RL experiments. Currently this script needs to be run by carefully 
+% modifying each sections and running them in the desired order. It will be updated to be more transparent/ usable later.
+
+
+schedule = transpose(1:400)
+
+% create random values for z trials, varying between specified boundaries
+
+z = randi([15 25],1,1)
+
+higherbound1 = 0.99
+lowerbound1 = 0.75
+
+higherbound2 = 0.25
+lowerbound2 = 0.01
+
+schedule(1:z,2) = (higherbound1 - lowerbound1).*rand + lowerbound1;
+
+for block = 1:100
+
+% find values yet to create
+zerovals = find(schedule(:,2) == 0)
+i = zerovals(1)
+
+    if block/2 == round(block/2)
+
+    schedule(i: i+ randi([15 25],1,1) ,2) = (higherbound1 - lowerbound1).*rand + lowerbound1;
+
+    else
+        
+    schedule(i: i+ randi([15 25],1,1) ,2) = (higherbound2 - lowerbound2).*rand + lowerbound2;
+    
+    end
+
+end
+    
+
+%% add anticorrelated bandit
+
+schedule(:,3) = 1 - schedule(:,2)
+
+%% add 3 bandit 
+
+Cbandit = zeros(400,1)
+
+z = randi([10 20],1,1)
+
+Cbandit(1:z,1) = rand;
+
+for block = 1:100
+
+% find values yet to create
+zerovals = find(Cbandit(:,1) == 0)
+i = zerovals(1)
+    Cbandit(i: i+ randi([10 20],1,1) ,1) = rand;
+
+end
+
+%%
+schedule(:,5) = Cbandit
+%% cut off extra trials
+
+schedule = schedule(1:400,:)
+
+%% generate presentation order
+
+order = [zeros(200,1) ; repmat(1,200,1)]
+
+order = Shuffle(order)
+
+schedule(:,4) = order
+
+%% generate order with 3 bandit
+
+order = [zeros(133,1) ; repmat(1,133,1) ; repmat(2,134,1)]
+
+order = Shuffle(order)
+
+schedule(:,4) = order
+
+%% generate noise
+a = -1;
+b = 1;
+r = (b-a).*rand(1000,1) + a;
+noise = r/10
