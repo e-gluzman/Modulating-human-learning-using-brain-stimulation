@@ -1,0 +1,606 @@
+function use_1(subID, condition)
+
+% Clear the workspace and the screen
+sca;
+
+subID = [subID '_' num2str(condition) '_AB']
+
+% Here we call some default settings for setting up Psychtoolbox
+PsychDefaultSetup(2); 
+
+% Get the screen numbers
+screens = Screen('Screens');
+
+% Draw to the external screen if avaliable
+screenNumber = max(screens);
+
+% skip synctest for now
+Screen('Preference', 'SkipSyncTests', 1);
+
+% Define black and white
+white = WhiteIndex(screenNumber);
+black = BlackIndex(screenNumber);
+grey = white / 2;
+inc = white - grey;
+
+%% Keyboard setup
+KbName('UnifyKeyNames');
+KbCheckList = [KbName('space'),KbName('q'),KbName('c'),KbName('v')];
+RestrictKeysForKbCheck(KbCheckList);
+
+% Set up the output file
+resultsFolder = 'results_use';
+outputfile = fopen([resultsFolder '/resultfile_' num2str(subID) '.txt'],'a');
+fprintf(outputfile, 'trial\t order\t probabiltyA\t probabiltyB\t probabilityC\t response\t rewarded\t score\t RT\n');
+%% Load trial list
+%trials = readmatrix('testschedule.xlsx');
+load('schedule/sc_15olu_stim.mat');
+trials = schedule;
+trials = transpose(trials);
+
+%% Screen set up
+
+% Open an on screen window
+[window, windowRect] = PsychImaging('OpenWindow', screenNumber, white);
+
+% Get the size of the on screen window
+[screenXpixels, screenYpixels] = Screen('WindowSize', window);
+
+% Query the frame duration
+ifi = Screen('GetFlipInterval', window);
+
+% Get the centre coordinate of the window
+[xCenter, yCenter] = RectCenter(windowRect);
+
+% Add height and width
+W=windowRect(RectRight); % screen width
+H=windowRect(RectBottom); % screen height
+
+% Set up alpha-blending for smooth (anti-aliased) lines
+Screen('BlendFunction', window, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
+
+%% find stimuli position
+
+% Get the size of the on screen window in pixels
+[screenXpixels, screenYpixels] = Screen('WindowSize', window);
+
+% Get the centre coordinate of the window in pixels
+[xCenter, yCenter] = RectCenter(windowRect);
+
+% define rectangle to draw
+baseRect = [0 0 1000 800];
+
+% Center the rectangle on the centre of the screen using fractional pixel
+% values.
+centered = CenterRectOnPointd(baseRect, (xCenter), yCenter);
+
+%% load images to draw
+
+imageNames = dir('images_use');
+imageNames = struct2cell(imageNames);
+
+for i = 3:17
+    
+    images{1,i-2} = imread(['images_use/' imageNames{1,i}]);
+    
+end
+
+for i = 1:length(images)
+    
+    image{i} = Screen('MakeTexture', window, images{i});
+    
+end
+
+
+%% text settings
+
+Screen('TextSize', window, 55);
+%Screen('TextFont', window, 'Courier');
+
+
+%% run the experiment
+
+score = 0
+
+% Start screen
+Screen('DrawText',window,'Press the space bar to start when instructed', (W/2-500), (H/2));
+Screen('Flip',window)
+
+% Wait for subject to press spacebar
+while 1
+    [keyIsDown,secs,keyCode] = KbCheck;
+    if keyCode(KbName('space'))==1
+        break
+    end
+end
+
+% In this script A and B are correlated and C is uncorrelated. 
+
+for t = 1:length(trials)
+    
+ 
+    % retrieve probability a choice is rewarded. 
+    
+    probabilityA = trials(2,t); %Probability of A = probability reward is on red when the state is A. 
+    
+    probabilityB = trials(3,t); %Probability of B = probability reward is on red when the state is B. 
+    
+    probabilityC = trials(4,t); %Probability of C = probability reward is on red when the state is C. 
+    
+    order = trials(5,t);
+
+    % decide which option to display
+        
+              % decide which option to display
+        
+        if order == 1 % show card A
+
+            % draw the card
+            Screen('DrawTexture', window, image{1}, [], centered);
+            
+            % draw the current score
+            sctext = num2str(score)
+            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+            
+            Screen('Flip', window);
+            
+            % start the clock
+            
+            tStart = GetSecs
+            tCheck = GetSecs - tStart
+            
+            % Wait for participant choice
+
+            % close window if escape is pressed
+            while 1
+             
+             tCheck = GetSecs - tStart
+
+            [keyIsDown,secs, keyCode] = KbCheck;
+           % if keyCode('ESCAPE')
+                if keyCode(KbName('q'))==1
+                sca;
+                Screen('CloseAll');
+                return
+
+            % if participant responds with 1 = red
+
+            %elseif keyCode('1')
+            elseif keyCode(KbName('c'))==1
+                
+                response = 1;
+                
+                % end clock and record rt
+                tEnd = GetSecs
+                RT = tEnd - tStart
+                
+                x = rand
+
+                        if x < probabilityA % probability of A is the probability reward is given after choosing red
+                            
+                            Screen('DrawTexture', window, image{2}, [], centered);
+                            
+                            rewarded = 1
+                            score = score + 10
+                            
+                            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+
+
+                        else 
+
+                            Screen('DrawTexture', window, image{3}, [], centered);
+                            
+                            rewarded = 0
+                            score = score - 0 
+                            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+
+                        
+                        end
+
+                        WaitSecs(1)
+                        
+                                                % Save results to file 'subID\t Condition\t trial\t card\t response\t RT\n'
+                       fprintf(outputfile, '%f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\n',...
+                            trials(1,t), order, probabilityA, probabilityB, probabilityC, response, rewarded, score, RT); 
+                        
+                        break
+                        
+           
+                        
+            % if participant responds with 2 = blue
+            
+            elseif keyCode(KbName('v'))==1
+                
+                response = 2;
+                
+                % end clock and record rt
+                tEnd = GetSecs
+                RT = tEnd - tStart
+                
+                x = rand;
+                
+                if x < (1 - probabilityA) 
+                    
+                            Screen('DrawTexture', window, image{4}, [], centered);
+                            
+                            rewarded = 1
+                            score = score + 10
+                            
+                            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+
+
+                        else 
+
+                            Screen('DrawTexture', window, image{5}, [], centered);
+
+                            rewarded = 0
+                            score = score - 0 
+                            
+                            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+
+                        
+                end
+
+                        WaitSecs(1)
+                        
+                                                % Save results to file 'subID\t Condition\t trial\t card\t response\t RT\n'
+                        fprintf(outputfile, '%f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\n',...
+                            trials(1,t), order, probabilityA, probabilityB, probabilityC, response, rewarded, score, RT); 
+                        
+                        break
+                        
+           
+            
+            elseif tCheck >= 4
+                 Screen('DrawText',window,'Time! Please respond faster.', (W/2-600), (H/2));
+                 Screen('Flip', window);
+                 
+                 response = 0;
+                 rewarded = 0;
+                 tEnd = GetSecs;
+                 RT = tEnd - tStart;
+                 
+                 WaitSecs(1)
+
+                 fprintf(outputfile, '%f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\n',...
+                            trials(1,t), order, probabilityA, probabilityB, probabilityC, response, rewarded, score, RT); 
+                 break
+                
+                    
+                    
+                end
+            
+            end 
+            
+
+    elseif order == 0 % show card B
+        
+            % draw the card
+            Screen('DrawTexture', window, image{6}, [], centered);
+            
+            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+                            
+            % start clock
+            tStart = GetSecs;
+            tCheck = GetSecs - tStart;
+
+            
+            % Wait for participant choice
+
+            % close window if escape is pressed
+            while 1
+            tCheck = GetSecs - tStart;
+            [keyIsDown,secs, keyCode] = KbCheck;
+            if keyCode(KbName('q'))==1
+                sca;
+                Screen('CloseAll');
+                return
+
+            % if participant responds with 1 = red
+
+            elseif keyCode(KbName('c'))==1
+                
+                response = 1;
+                
+                % end clock and record rt
+                tEnd = GetSecs
+                RT = tEnd - tStart
+                
+                x = rand
+
+                       if x < probabilityB 
+                            
+                            Screen('DrawTexture', window, image{7}, [], centered);
+                            
+                            rewarded = 1
+                            score = score + 10
+                           
+                            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+
+
+
+                        else 
+
+                            Screen('DrawTexture', window, image{8}, [], centered);
+                            
+                            rewarded = 0
+                            score = score - 0 
+                            
+                            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+
+                        
+                        end
+
+                        record(3,t) = probabilityB
+                        WaitSecs(1)
+                        
+                                                % Save results to file 'subID\t Condition\t trial\t card\t response\t RT\n'
+                        fprintf(outputfile, '%f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\n',...
+                            trials(1,t), order, probabilityA, probabilityB, probabilityC, response, rewarded, score, RT); 
+                        
+                        break
+           
+                        
+            % if participant responds with 2 = blue
+            
+            elseif keyCode(KbName('v'))==1
+                
+                response = 2;
+                
+                % end clock and record rt
+                tEnd = GetSecs
+                RT = tEnd - tStart
+                
+                x = rand;
+                
+                         if x < (1 - probabilityB)
+                    
+                            Screen('DrawTexture', window, image{9}, [], centered);
+
+                            rewarded = 1
+                            score = score + 10
+                            
+                            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+
+
+                        else 
+
+                            Screen('DrawTexture', window, image{10}, [], centered);
+
+                            rewarded = 0
+                            score = score - 0 
+                            
+                            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+
+                        
+                        end
+
+                        WaitSecs(1);
+                        
+                        % Save results to file 'subID\t Condition\t trial\t card\t response\t RT\n'
+                        fprintf(outputfile, '%f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\n',...
+                            trials(1,t), order, probabilityA, probabilityB, probabilityC, response, rewarded, score, RT); 
+                        break
+                        
+                 elseif tCheck >= 4
+                 Screen('DrawText',window,'Time! Please respond faster.', (W/2-600), (H/2));
+                 Screen('Flip', window);
+                  
+                 response = 0;
+                 rewarded = 0;
+                 tEnd = GetSecs;
+                 RT = tEnd - tStart;
+                 
+                 WaitSecs(1)
+
+                 fprintf(outputfile, '%f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\n',...
+                            trials(1,t), order, probabilityA, probabilityB, probabilityC, response, rewarded, score, RT); 
+                 % need to set fprintf
+                 break
+           
+            end
+                        
+            end
+              
+        elseif order == 2 % show card C
+
+            % draw the card
+            Screen('DrawTexture', window, image{11}, [], centered);
+            
+            % draw the current score
+            sctext = num2str(score)
+            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+            
+            Screen('Flip', window);
+            
+            % Start clock
+            tStart = GetSecs;
+            tCheck = GetSecs - tStart;
+            
+            % Wait for participant choice
+
+            % close window if escape is pressed
+            while 1
+            tCheck = GetSecs - tStart;
+            [keyIsDown,secs, keyCode] = KbCheck;
+           % if keyCode('ESCAPE')
+                if keyCode(KbName('q'))==1
+                sca;
+                Screen('CloseAll');
+                return
+
+            % if participant responds with 1 = red
+
+            %elseif keyCode('1')
+            elseif keyCode(KbName('c'))==1
+                
+                response = 1;
+                
+                % end clock and record rt
+                tEnd = GetSecs;
+                RT = tEnd - tStart;
+                
+                x = rand
+
+                        if x < probabilityC % probability of C is the probability reward is given after choosing red
+                            
+                            Screen('DrawTexture', window, image{12}, [], centered);
+                            
+                            rewarded = 1
+                            score = score + 10
+                            
+                            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+
+
+                        else 
+
+                            Screen('DrawTexture', window, image{13}, [], centered);
+                            
+                            rewarded = 0
+                            score = score - 0 
+                            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+
+                        
+                        end
+
+                        record(3,t) = probabilityC
+                        WaitSecs(1)
+                        
+                                                % Save results to file 'subID\t Condition\t trial\t card\t response\t RT\n'
+                        fprintf(outputfile, '%f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\n',...
+                            trials(1,t), order, probabilityA, probabilityB, probabilityC, response, rewarded, score, RT);  
+                        
+                        break
+                        
+           
+                        
+            % if participant responds with 2 = blue
+            
+            elseif keyCode(KbName('v'))==1
+                
+                response = 2
+                
+                % end clock and record rt
+                tEnd = GetSecs
+                RT = tEnd - tStart
+                
+                x = rand
+                
+                if x < (1 - probabilityC) 
+                    
+                            Screen('DrawTexture', window, image{14}, [], centered);
+                            
+                            rewarded = 1
+                            score = score + 10
+                            
+                            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+
+
+                        else 
+
+                            Screen('DrawTexture', window, image{15}, [], centered);
+
+                            rewarded = 0
+                            score = score - 0 
+                            
+                            % add score
+                            sctext = num2str(score)
+                            Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+                            Screen('Flip', window);
+
+                        
+                end
+
+                        WaitSecs(1)
+                        
+                                                % Save results to file 'subID\t Condition\t trial\t card\t response\t RT\n'
+                        fprintf(outputfile, '%f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\n',...
+                            trials(1,t), order, probabilityA, probabilityB, probabilityC, response, rewarded, score, RT);  
+                        
+                        break
+                        
+                 elseif tCheck >= 4
+                 Screen('DrawText',window,'Time! Please respond faster.', (W/2-600), (H/2));
+                 Screen('Flip', window);
+                 
+                 response = 0;
+                 rewarded = 0;
+                 tEnd = GetSecs;
+                 RT = tEnd - tStart;
+                 
+                 WaitSecs(1)
+
+                 fprintf(outputfile, '%f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\t %f\n',...
+                            trials(1,t), order, probabilityA, probabilityB, probabilityC, response, rewarded, score, RT); 
+                 % need to set fprintf
+                 break
+           
+            end
+            
+            end
+            
+   end
+
+
+ 
+end
+
+%% Finish screen
+
+% add score
+sctext = num2str(score)
+Screen('DrawText',window,['Score: ' sctext], (W/2-700), (H/2));
+
+Screen('DrawText',window,'Thank you! Please proceed to next section.', (W/2-500), (H/2));
+Screen('Flip',window)
+
+fclose(outputfile); 
+
+% Wait for subject to press spacebar
+ while 1
+            [keyIsDown,secs, keyCode] = KbCheck;
+            if keyCode(KbName('q'))==1
+                sca;
+%                 Screen('CloseAll');
+                return
+            end
+ end
+ 
+end
+ %% %%  vcccvcvcvccq q vccvccccvvcccccccvcvvvvccvvvcvccvccvvvvccvcccvvcvvccvccvccccvcccvcvccvvccvvcvcvcvccvvcq vvvccccc cvc cccccvccvvvcvcvvcvcvcvvvccvvvccvvvccvccvcvvvcvvvvcvvvccvvccvvvvvccvvcvvvvvvvcccvvccvvccccvcvvccvvvvvccqvcbvvccvcvccvvvvcccvcccvvvvcvvvvcvvvcvccvvvvcvvvvvvvcvcvcvccvccvvvvccvvccvvccvvccvccvvcvvcccccccvccvcccvvvvvcvcvvvvvvvvcvccccvvvvvvvvvvvvvvvvvvvvvvvvccvcccccvvvcccvvqvcvcvvcvcvq cvvvvccvcvccvvvvcvvvccvvvcvvcvccvcvcvccvcvccvvvccvccvccvcvcvccvvcvvcvcvvccvvvvcvvvvcvcvvccvcvvvcvcvccvvcccvvcvccvcvvcvvvvcvvvccvccvq
